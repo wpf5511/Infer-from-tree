@@ -6,7 +6,6 @@
 #define INFER_FROM_TREE_PATTERNTREE_H
 
 #include <vector>
-#include "GenericTree.h"
 
 class PatternNode {
 public:

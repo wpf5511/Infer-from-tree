@@ -15,9 +15,11 @@ class ZparNode{
          std::string get_pos();
          std::string get_dependency();
          std::string get_lexeme();
+         int get_id();
 
 
         ZparNode(std::string lexeme,std::string pos,int parent_id,std::string dependency);
+
         ZparNode(const ZparNode &node);
 
 

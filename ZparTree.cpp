@@ -12,7 +12,12 @@ int ZparNode::get_parent() {
     return this->parent_id;
 }
 
+int ZparNode::get_id(){
+    return this->id;
+}
+
 ZparNode::ZparNode(std::string lexeme, std::string pos, int parent_id, std::string dependency) {
+
     this->lexeme = lexeme;
     this->pos = pos;
     this->parent_id =parent_id;
@@ -20,6 +25,8 @@ ZparNode::ZparNode(std::string lexeme, std::string pos, int parent_id, std::stri
 }
 
 ZparNode::ZparNode(const ZparNode &node) {
+
+    this->id = node.id;
     this->lexeme = node.lexeme;
     this->pos = node.pos;
     this->parent_id = node.parent_id;
@@ -45,19 +52,18 @@ std::string ZparNode::get_lexeme() {
 
 //ZparTree method
 
-void ZparTree::add_node(ZparNode node) {
+void ZparTree::add_node(ZparNode node2) {
 
     int j = this->nodes.size();
 
-    node.id = j;
+    node2.id = j;
 
 
-    if(node.parent_id==-1){
+    if(node2.parent_id==-1){
         root_id=j;
     }
 
-
-    this->nodes.push_back(node);
+    this->nodes.push_back(node2);
 
 }
 

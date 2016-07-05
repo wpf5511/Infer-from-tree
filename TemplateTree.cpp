@@ -3,20 +3,40 @@
 //
 
 #include "TemplateTree.h"
-#include <tuple>
 #include <queue>
 
-std::map<s2tuple,bool> TemplateNode::arg_map{
-        {std::make_tuple("vv","nn"),1}
+std::map<judge_arg,bool> TemplateNode::arg_map{
+        {judge_arg("NT","NR","", false), false},
+        {judge_arg("NT","VV","", false), false},
+        {judge_arg("NT","NN","", false), false},
+        {judge_arg("NT","VC","SBJ", true), true},
+        {judge_arg("NT","VE","VMOD", true), false},
+
+        {judge_arg("NR","NR","", false), false},
+        {judge_arg("NR","VV","", false), true},
+        {judge_arg("NR","NN","NMOD", true), false},
+        {judge_arg("NR","VC","SBJ", true), true},
+        {judge_arg("NR","VE","", false), true},
+
+
+        {judge_arg("NN","NR","NMOD", true), false},
+        {judge_arg("NN","VC","", false), true},
+        {judge_arg("NN","VV","", false), true},
+        {judge_arg("NN","LB","SBJ", true), true},
+        {judge_arg("NN","NN","NMOD", true), false},
+        {judge_arg("NN","M","SBJ", true), true},
+        {judge_arg("NN","VA","", false), true},
+        {judge_arg("NN","VE","", false), true}
+
 };
 
 std::map<std::string,int> TemplateTree::coor_map;
 
-int ::TemplateNode::get_id() {
+int TemplateNode::get_Id() {
     return id;
 }
 
-void::TemplateTree::Convert_from_Zpar(ZparTree ztree) {
+void TemplateTree::Convert_from_Zpar(ZparTree ztree) {
 
     ZparNode root_node = ztree.get_Node(ztree.root_id);
 
@@ -34,7 +54,7 @@ void::TemplateTree::Convert_from_Zpar(ZparTree ztree) {
 
         TNode_queue.pop();
 
-        int current_id = current_TNode->get_id();
+        int current_id = current_TNode->get_Id();
 
         std::vector<int> children_id = ztree.get_children(current_id);
 
@@ -47,7 +67,11 @@ void::TemplateTree::Convert_from_Zpar(ZparTree ztree) {
 
             child_TNode->parent = current_TNode;
 
-            current_TNode->Others.push_back(child_TNode);
+            if(child_TNode->is_arg()){               //is arguments
+                current_TNode->Args.push_back(child_TNode);
+            }else{                                  // not arguments
+                current_TNode->Others.push_back(child_TNode);
+            }
 
             TNode_queue.push(child_TNode);
         }
@@ -57,16 +81,20 @@ void::TemplateTree::Convert_from_Zpar(ZparTree ztree) {
 }
 
 
-bool TemplateNode::is_arg(TemplateNode *cnode) {
-    std::string cpos = cnode->pos;
+bool TemplateNode::is_arg() {
+    std::string cpos = this->pos;
 
-    TemplateNode *pnode = cnode->parent;
+    TemplateNode *pnode = this->parent;
 
     std::string ppos = pnode->pos;
 
-    s2tuple pc_pos = std::make_tuple(ppos,cpos);
+    std::string dependency = this->dependency;
 
-    bool res = arg_map[pc_pos];
+    judge_arg judge_node1 = judge_arg(cpos,ppos,dependency, true);
+    judge_arg judge_node2 = judge_arg(cpos,ppos,"", false);
+
+    bool res = arg_map[judge_node1]||arg_map[judge_node2];
+
 
     return res;
 
