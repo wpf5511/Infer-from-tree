@@ -67,10 +67,10 @@ void TemplateTree::Convert_from_Zpar(ZparTree ztree) {
 
             child_TNode->parent = current_TNode;
 
+            current_TNode->Children.push_back(child_TNode);
+
             if(child_TNode->is_arg()){               //is arguments
                 current_TNode->Args.push_back(child_TNode);
-            }else{                                  // not arguments
-                current_TNode->Others.push_back(child_TNode);
             }
 
             TNode_queue.push(child_TNode);

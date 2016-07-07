@@ -43,6 +43,8 @@ public:
     std::vector<int> get_children(int id);
     std::string to_sentence();
 
+    void collapse_prep();
+
 };
 
 

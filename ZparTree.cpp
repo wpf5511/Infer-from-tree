@@ -96,3 +96,8 @@ std::string ZparTree::to_sentence() {
     }
     return out_sen.str();
 }
+
+void ZparTree::collapse_prep() {
+
+
+}

@@ -51,9 +51,11 @@ public:
 
     TemplateNode* parent;
 
-    std::vector<TemplateNode*> Others;
+    std::vector<TemplateNode*> Children;
 
     std::vector<TemplateNode*> Coors;
+
+    std::vector<TemplateNode*> Preps;
 
     TemplateNode(const ZparNode& znode);
 
