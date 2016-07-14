@@ -23,11 +23,11 @@ class ZparNode{
         ZparNode(const ZparNode &node);
 
 
-        int id;
-        std::string lexeme;
-        std::string pos;
+        int id;  //word position in the sentence
+        std::string lexeme;  //word
+        std::string pos;   //pos tag
         int parent_id;
-        std::string dependency;
+        std::string dependency;  //dependency relation
 };
 
 
@@ -39,7 +39,7 @@ public:
 
     void add_node(ZparNode node);
     void set_children_array();
-    ZparNode get_Node(int id);
+    ZparNode& get_Node(int id);
     std::vector<int> get_children(int id);
     std::string to_sentence();
 

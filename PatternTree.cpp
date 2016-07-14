@@ -9,6 +9,7 @@ std::map<judge_arg,bool> ALGraph::arg_map{
         {judge_arg("NT","VV","", false), false},
         {judge_arg("NT","NN","", false), false},
         {judge_arg("NT","VC","SBJ", true), true},
+
         {judge_arg("NT","VE","VMOD", true), false},
 
         {judge_arg("NR","NR","", false), false},
@@ -105,9 +106,9 @@ void ALGraph::Convert_from_Zpar(ZparTree ztree) {
 
      VertexNum = ztree.nodes.size();
 
-     adjList = new Vertex[VertexNum];
+     adjList = new Vertex[VertexNum+10];   //以防以后添加节点,如处理"...的"的情况.
 
-     reverse_adjList = new Vertex[VertexNum];
+     reverse_adjList = new Vertex[VertexNum+10];
 
     std::queue<int> id_queue;
 
@@ -147,18 +148,18 @@ void ALGraph::Convert_from_Zpar(ZparTree ztree) {
 
             if(is_argument){
                 ArgumentNode argumentNode = ArgumentNode(child_node);
+                Position p = Position(1,argumentnodes.size());
                 argumentnodes.push_back(argumentNode);
-                Position p = Position(1,argumentnodes.size()-1);
             }else{
                 bool is_predicate = is_pre(child_node,ztree);
                 if(is_predicate){
                     TemplateNode templateNode = TemplateNode(child_node);
+                    Position p = Position(0,templatenodes.size());
                     templatenodes.push_back(templateNode);
-                    Position p = Position(0,templatenodes.size()-1);
                 } else{
                     CommonNode commonNode = CommonNode(child_node);
+                    Position p = Position(2,commonnodes.size());
                     commonnodes.push_back(commonNode);
-                    Position p = Position(2,commonnodes.size()-1);
                 }
             }
 
@@ -302,6 +303,80 @@ void ALGraph::collapse_prep() {
     }
 }
 
+void ALGraph::handle_dec() {
+
+    //find dec节点;
+    for(int i=0;i<commonnodes.size();i++){
+        CommonNode commonNode = commonnodes[i];
+        if(commonNode.get_pos()=="DEC"){
+            auto r_dec_vertex = reverse_adjList[commonNode.id];
+
+            Edge *edge = r_dec_vertex.first_edge;
+
+            //逆邻接表不为空,有parent节点
+            if(edge!= nullptr){
+                int parent_id = edge->adjvex;
+
+                auto  &parent_vertex = reverse_adjList[parent_id];
+
+                auto  &r_parent_vertex = adjList[parent_id];
+
+
+                Edge *pedge = parent_vertex.first_edge;
+
+                if(pedge!= nullptr) {
+                    int pparent_id = pedge->adjvex;
+
+                    //删除pparent的邻接边
+                    auto &pparent_vertex = adjList[pparent_id];
+                    Edge *ppedge = pparent_vertex.first_edge;
+                    Edge *pp_previous = nullptr;
+
+                    if (ppedge != nullptr)
+                    {
+                        while (ppedge != nullptr) {
+                        if (ppedge->adjvex == parent_id) {
+                            pp_previous->next = ppedge->next;
+
+                            //删除后break
+                            break;
+                        }
+                        pp_previous = ppedge;
+                        ppedge = ppedge->next;
+                        }
+
+                         //删除parent的逆邻接边  TODO:假设parent只是一个的情况
+                        delete pedge;
+                        parent_vertex.first_edge = nullptr;
+
+                        //添加节点
+                        int added_id = VertexNum;
+                        adjList[VertexNum++] = Vertex(added_id);   //添加一个新节点,节点的id为节点数目(顺序添加的最后一个),TODO:id在句子中的位置还没有记录
+                        reverse_adjList[added_id] = Vertex(added_id);
+
+                        //这个节点应该是名词,变元节点
+                        ArgumentNode added_node = ArgumentNode(added_id,"empty node","empty pos");
+
+                        Position added_pos = Position(1,argumentnodes.size());
+
+                        argumentnodes.push_back(added_node);
+
+                        //添加新节点的两条边
+
+                        Edge * added_edge = new Edge(parent_id,"ATT");
+                        Edge * added_r_edge = new Edge(pparent_id,"")
+                        adjList[added_id].first_edge=
+
+                    }
+
+                }
+            }
+        }
+
+    }
+
+}
+
 std::string ALGraph::get_node_pos(int node_id) {
     Position node_position = vertex_index[node_id];
 
@@ -342,4 +417,10 @@ CommonNode::CommonNode(const ZparNode &znode) {
 
 std::string CommonNode::get_pos() {
     return this->pos;
+}
+
+ArgumentNode::ArgumentNode(int id, std::string lexeme, std::string pos) {
+    this->id = id;
+    this->lexeme = lexeme;
+    this->pos = pos;
 }

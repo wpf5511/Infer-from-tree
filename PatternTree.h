@@ -53,6 +53,8 @@ class ArgumentNode{
 public:
     ArgumentNode(const ZparNode& znode);
 
+    ArgumentNode(int id,std::string lexeme,std::string pos);
+
 public:
     int id;
     std::string lexeme;
@@ -139,6 +141,8 @@ public:
     void Convert_from_Zpar(ZparTree ztree);
 
     void collapse_prep();
+
+    void  handle_dec();
 
     bool is_arg(ZparNode znode);
 

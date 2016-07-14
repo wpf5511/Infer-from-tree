@@ -84,7 +84,7 @@ std::vector<int> ZparTree::get_children(int id) {
 }
 
 
-ZparNode ZparTree::get_Node(int id) {
+ZparNode& ZparTree::get_Node(int id) {
     return nodes[id];
 }
 
