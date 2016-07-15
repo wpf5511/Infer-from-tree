@@ -3,6 +3,7 @@
 //
 
 #include "InferenceGraph.h"
+#include <iostream>
 #include <vector>
 
 std::map<judge_pre,bool> InferenceGraph::pre_map{
@@ -113,15 +114,18 @@ bool InferenceGraph::is_predicate(ZparNode cur_node, ZparNode nb_node, bool dire
     if(direction == true){
 
         judge_pre judge_with_dep = judge_pre(cur_pos,nb_pos,nb_dependency, true, true);
-        judge_pre judge_without = judge_pre(cur_pos,nb_pos,nb_dependency, false, true);
+        judge_pre judge_without = judge_pre(cur_pos,nb_pos,"", false, true);
 
-        return pre_map[judge_with_dep]||pre_map[judge_without];
+        bool res =pre_map[judge_with_dep]||pre_map[judge_without];
+
+        return  res;
 
     } else{
         judge_pre judge_with_dep = judge_pre(cur_pos,nb_pos,cur_dependency, true, false);
         judge_pre judge_without = judge_pre(cur_pos,nb_pos,cur_dependency, false, false);
 
-        return pre_map[judge_with_dep]||pre_map[judge_without];
+        bool res = pre_map[judge_with_dep]||pre_map[judge_without];
+        return  res;
 
     }
 
@@ -142,9 +146,9 @@ void InferenceGraph::add_DepEdge(ZparNode from,ZparNode to){
 }
 
 void InferenceGraph::add_DepEdge(ZparNode from, ZparNode to,
-                                 std::string Dep_relation, std::string col_prep) {
+                                 std::string Dep_relation, bool has_more,int col_nodeid) {
 
-    Dep_Edge *dep_edge= new Dep_Edge(to.id,Dep_relation,col_prep);
+    Dep_Edge *dep_edge= new Dep_Edge(to.id,Dep_relation,has_more,col_nodeid);
 
     Vertex &from_vertex = adjList[from.id];  //parent vertex
 
@@ -155,7 +159,7 @@ void InferenceGraph::add_DepEdge(ZparNode from, ZparNode to,
 
 }
 
-void InferenceGraph::add_DepEdge(int from_id, int to_id, std::string Dep_relation) {
+void InferenceGraph::add_DepEdge(int from_id, int to_id, std::string Dep_relation,bool has_more,int collapse_id) {
     Dep_Edge *dep_edge=new Dep_Edge(to_id,Dep_relation);
     Vertex &from_vertex = adjList[from_id];
 
@@ -238,8 +242,13 @@ bool InferenceGraph::handle_prep(ZparNode znode,ZparTree ztree) {
             if(can_collapse(prep_child)){
                 ZparNode prep_parent = ztree.get_Node(parent_id);
 
-                add_DepEdge(prep_parent,prep_child,znode.dependency,znode.lexeme);
+                add_DepEdge(prep_parent,prep_child,znode.dependency, true,znode.id);
 
+                bool is_pred = is_predicate(prep_parent,prep_child, true);
+
+                if(is_pred){
+                    add_PaEdge(prep_parent,prep_child);
+                }
                 prep_child.parent_id = parent_id;
 
                 return true;
@@ -249,6 +258,7 @@ bool InferenceGraph::handle_prep(ZparNode znode,ZparTree ztree) {
 }
 
 bool InferenceGraph::handle_dec(ZparNode znode,ZparTree ztree) {
+    //znode is the dec node
     std::string cur_pos = znode.pos;
 
     if(cur_pos!="DEC"){
@@ -279,7 +289,7 @@ bool InferenceGraph::handle_dec(ZparNode znode,ZparTree ztree) {
                 ZparNode & dec_child = ztree.get_Node(children_id[i]);
 
                 if(dec_child.dependency=="DEC"){
-                    add_DepEdge(added_id,dec_child.id,"NMOD");//assume the added node is noun and child as a modifier
+                    add_DepEdge(added_id,dec_child.id,"NMOD", true,znode.id);//assume the added node is noun and child as a modifier
 
                     //处理新节点的pre-arg关系
                     Process_added_node(added_id,dec_parent.id,dec_child.id);
@@ -298,7 +308,7 @@ bool InferenceGraph::handle_dec(ZparNode znode,ZparTree ztree) {
                 ZparNode & dec_child = ztree.get_Node(children_id[i]);
 
                 if(dec_child.dependency=="DEC"){
-                    add_DepEdge(dec_parent,dec_child,znode.dependency,znode.lexeme);
+                    add_DepEdge(dec_parent,dec_child,znode.dependency, true,znode.id);
 
                     dec_child.parent_id = parent_id;
                 }
@@ -309,6 +319,8 @@ bool InferenceGraph::handle_dec(ZparNode znode,ZparTree ztree) {
 
 //暂定新添加的节点是arg,上下两个一元模版,增加pre-arg边,指向added_node
 void InferenceGraph::Process_added_node(int added_id,int parent_id,int child_id){
+    //suppose added node is noun ,and also cause dec parent is verb,and for dec_child which has "DEC" relation is also verb
+    //so I assume the added node is a argument
     add_PaEdge(parent_id,added_id);
     add_PaEdge(child_id,added_id);
 }
@@ -341,10 +353,12 @@ bool InferenceGraph::judge_process_predicate(ZparNode znode, ZparTree ztree) {
         if(is_pred){
            add_PaEdge(znode,pnode);
         }
-
     }
 
     std::vector<int> children_id = ztree.get_children(node_id);
+
+    bool is_down_pred = false;
+    std::vector<std::tuple<ZparNode,ZparNode>> aff_edge;
 
     for(int i=0;i<children_id.size();i++){
 
@@ -367,7 +381,7 @@ bool InferenceGraph::judge_process_predicate(ZparNode znode, ZparTree ztree) {
 
         }
 
-        if(!handle_prep_res&&same_node&&handle_dec_res){
+        if(!handle_prep_res&&same_node&&!handle_dec_res){
             //添加dependency边
             add_DepEdge(znode,child_node);// dependency from parent to child
         }
@@ -378,6 +392,7 @@ bool InferenceGraph::judge_process_predicate(ZparNode znode, ZparTree ztree) {
         //添加pre-arg边
         if(is_pred){
             add_PaEdge(znode,child_node);
+            is_down_pred = true;
         }
         else{
 
@@ -389,15 +404,20 @@ bool InferenceGraph::judge_process_predicate(ZparNode znode, ZparTree ztree) {
                 //handle coor
             } else{
                 bool is_aff = is_affix(child_node,znode);
-                if(is_aff){
+                auto zc_tuple = std::make_tuple(znode,child_node);
+                if(is_aff&!handle_prep_res&&!handle_dec_res){
                     //添加pre-aff边
-                    add_AffEdge(znode,child_node);
+                    //add_AffEdge(znode,child_node);
+                    aff_edge.push_back(zc_tuple);
                 }
             }
         }
-
     }
-
+    if(is_down_pred){
+        for(int i=0;i<aff_edge.size();i++){
+            add_AffEdge(std::get<0>(aff_edge[i]),std::get<1>(aff_edge[i]));
+        }
+    }
 }
 
 void InferenceGraph::Convert_from_Zpar(ZparTree ztree) {
@@ -408,4 +428,21 @@ void InferenceGraph::Convert_from_Zpar(ZparTree ztree) {
 
     ProcessDependencyNode(root_node,ztree);
 
+}
+
+void InferenceGraph::PrintEdge() {
+    for(int i=0;i<VertexNum;i++){
+        auto vertex = adjList[i];
+        auto p1=vertex.first_arg;
+        auto p2=vertex.first_aff;
+
+        while (p1!= nullptr){
+            std::cout<<adjList[i].lexeme<<"--->"<<adjList[p1->adjvex].lexeme<<"   "<<p1->Pa_relation<<std::endl;
+            p1=p1->next;
+        }
+        while (p2!= nullptr){
+            std::cout<<adjList[i].lexeme<<"--->"<<adjList[p2->adjvex].lexeme<<"   "<<p2->Aff_relation<<std::endl;
+            p2=p2->next;
+        }
+    }
 }

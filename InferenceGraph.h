@@ -13,14 +13,19 @@ struct Dep_Edge{
 
     int adjvex;
     std::string Dep_relation;//depdency relation
-    std::string col_prep; //坍塌掉的介词
+
+    bool has_vertex_info;
+
+    int collapse_nodeid;
+
     Dep_Edge *next;
 
-    Dep_Edge(int target,std::string dependency,std::string col_prep=""){
+    Dep_Edge(int target,std::string dependency,bool has_info= false,int col_id=-1){
 
         this->adjvex = target;
         this->Dep_relation = dependency;
-        this->col_prep = col_prep;
+        this->collapse_nodeid = col_id;
+        this->has_vertex_info = false;
         next = nullptr;
     }
 };
@@ -98,10 +103,12 @@ struct Vertex{
         is_empty_node = false;
 
 
-        Dep_Edge* first_dep= nullptr;   //initialize_edge
-        Pa_Edge* first_arg = nullptr;
-        Aff_Edge* first_aff = nullptr;
+        this->first_dep= nullptr;   //initialize_edge
+        this->first_arg = nullptr;
+        this->first_aff = nullptr;
     }
+
+
 
     bool operator <(const Vertex& other){
         return this->id<other.id;
@@ -125,7 +132,7 @@ struct judge_pre{
         this->necessary = necessary;
     }
 
-    bool operator <(const judge_pre& other){
+    bool operator <(const judge_pre& other)const{
         if(cpos!=other.cpos){
             return cpos<other.cpos;
         }
@@ -156,7 +163,7 @@ struct judge_coor{
         this->dependency = dependency;
     }
 
-    bool operator <(const judge_coor& other){
+    bool operator <(const judge_coor& other)const{
         if(cur_pos!=other.cur_pos){
             return cur_pos<other.cur_pos;
         }
@@ -203,9 +210,9 @@ public:
 
     void add_DepEdge(ZparNode from,ZparNode to);
 
-    void add_DepEdge(ZparNode from,ZparNode to,std::string Dep_relation,std::string col_prep);
+    void add_DepEdge(ZparNode from,ZparNode to,std::string Dep_relation,bool has_more= false,int collapse_id=-1);
 
-    void add_DepEdge(int from_id,int to_id,std::string Dep_relation);
+    void add_DepEdge(int from_id,int to_id,std::string Dep_relation,bool has_more= false,int collapse_id=-1);
 
     void add_PaEdge(ZparNode from,ZparNode to);
 
@@ -224,6 +231,8 @@ public:
     void ProcessDependencyNode(ZparNode znode,ZparTree ztree);
 
     bool judge_process_predicate(ZparNode znode, ZparTree ztree);
+
+    void PrintEdge();
 
 
 

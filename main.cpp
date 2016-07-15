@@ -62,12 +62,12 @@ void search_zpartree1(ZparTree ztree){
 
 void search_zpartree2(ZparTree ztree){
 
-    ofstream   be_children("/Users/wangpf/Downloads/DEC_allparent",ios::app);
+    ofstream   be_children("/Users/wangpf/Downloads/LC_allparent",ios::app);
 
     for(int i=0;i<ztree.nodes.size();i++){
 
         ZparNode znode = ztree.get_Node(i);
-        if(znode.pos=="DEC"){
+        if(znode.pos=="LC"){
             int parent_id = znode.parent_id;
             if(parent_id!=-1)
             {
@@ -81,31 +81,31 @@ void search_zpartree2(ZparTree ztree){
 
 void search_zpartree3(ZparTree ztree){
 
-    ofstream be_children("/Users/wangpf/Downloads/P_mulsentence",ios::app);
+    ofstream be_children("/Users/wangpf/Downloads/LC_allchildren",ios::app);
 
     for(int i=0;i<ztree.nodes.size();i++) {
 
         ZparNode pnode = ztree.get_Node(i);
 
-        if (pnode.pos == "P") {
+        if (pnode.pos == "LC") {
 
         vector<int> children_id = ztree.get_children(i);
 
-            if(children_id.size()>=2){
+           // if(children_id.size()>=2){
         for (int j = 0; j < children_id.size(); j++) {
                 ZparNode cnode = ztree.get_Node(children_id[j]);
-                // be_children << pnode.lexeme << "\t" << pnode.pos << "\t" << cnode.parent_id << "\t" << cnode.lexeme <<
-                // "\t" << cnode.pos << "\t" << cnode.id << "\t" << cnode.dependency << endl;
+                 be_children << pnode.lexeme << "\t" << pnode.pos << "\t" << cnode.parent_id << "\t" << cnode.lexeme <<
+                 "\t" << cnode.pos << "\t" << cnode.id << "\t" << cnode.dependency << endl;
                /* if(cnode.pos=="VV"){
                     be_children<<ztree.to_sentence()<<endl;
                     break;
                 }*/
             }
-                be_children<<ztree.to_sentence()<<endl;
+                //be_children<<ztree.to_sentence()<<endl;
             //be_children<<"-"<<"\t"<<"-"<<"\t"<<"-2"<<"\t"<<"-"<<"\t"<<"-"<<"\t"
             //<<"-2"<<"\t"<<"-"<<endl;
 
-        }
+      //  }
 
         }
     }
@@ -139,14 +139,18 @@ int main() {
 
     cout<<zpars.size()<<endl;
 
-    //TemplateTree Ttree;
-
-    //Ttree.Convert_from_Zpar(zpars[0]);
 
     //for_each(zpars.begin(),zpars.end(),search_zpartree3);
 
     InferenceGraph inferenceGraph;
 
+
+
     inferenceGraph.Convert_from_Zpar(zpars[0]);
+
+    inferenceGraph.PrintEdge();
+
+
+
 
 }
