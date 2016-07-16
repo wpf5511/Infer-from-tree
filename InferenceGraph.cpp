@@ -48,6 +48,7 @@ std::map<judge_pre,bool> InferenceGraph::pre_map{
 
         {judge_pre("NR","NR","NMOD", true, false), true}, //false means down
         {judge_pre("NN","NR","NMOD", true, false), true},//false means down
+        {judge_pre("VA","NN","NMOD", true, false),true}
 
 };
 
@@ -66,7 +67,7 @@ std::map<judge_coor,bool> InferenceGraph::coor_map{
 
 };
 
-void InferenceGraph::ProcessDependencyNode(ZparNode znode,ZparTree ztree){
+void InferenceGraph::ProcessDependencyNode(ZparNode znode,ZparTree& ztree){
 
 
     judge_process_predicate(znode,ztree);
@@ -122,7 +123,7 @@ bool InferenceGraph::is_predicate(ZparNode cur_node, ZparNode nb_node, bool dire
 
     } else{
         judge_pre judge_with_dep = judge_pre(cur_pos,nb_pos,cur_dependency, true, false);
-        judge_pre judge_without = judge_pre(cur_pos,nb_pos,cur_dependency, false, false);
+        judge_pre judge_without = judge_pre(cur_pos,nb_pos,"", false, false);
 
         bool res = pre_map[judge_with_dep]||pre_map[judge_without];
         return  res;
@@ -224,7 +225,38 @@ bool InferenceGraph::is_affix(ZparNode cur_node,ZparNode parent_node) {
     return true;
 }
 
-bool InferenceGraph::handle_prep(ZparNode znode,ZparTree ztree) {
+void InferenceGraph::addcollapse_node(int topid, int middleid, int bottomid) {
+
+    auto top_vertex= adjList[topid];
+
+    Dep_Edge *bottom_edge= nullptr;
+
+    Dep_Edge *middle_edge= nullptr;
+
+    auto p = top_vertex.first_dep;
+    while (p!= nullptr){
+        if(p->adjvex==bottomid){
+            bottom_edge = p;
+        }
+        if(p->adjvex==middleid){
+            middle_edge = p;
+        }
+        p = p->next;
+    }
+
+    if(middle_edge!= nullptr){
+
+        auto middle_colids = middle_edge->collapse_nodeids;
+        for(int i=1;i<middle_colids.size();i++){
+            bottom_edge->collapse_nodeids.push_back(middle_colids[i]);
+        }
+
+    }
+
+
+}
+
+bool InferenceGraph::handle_prep(ZparNode znode,ZparTree& ztree) {
 
     std::string cur_pos = znode.pos;
 
@@ -239,17 +271,20 @@ bool InferenceGraph::handle_prep(ZparNode znode,ZparTree ztree) {
 
         for(int i=0;i<children_id.size();i++){
             ZparNode& prep_child = ztree.get_Node(children_id[i]);
-            if(can_collapse(prep_child)){
+            if(prep_can_collapse(prep_child)){
                 ZparNode prep_parent = ztree.get_Node(parent_id);
 
                 add_DepEdge(prep_parent,prep_child,znode.dependency, true,znode.id);
 
-                bool is_pred = is_predicate(prep_parent,prep_child, true);
+                //addcollapse_node(prep_parent.id,znode.id,prep_child);
+
+                /*bool is_pred = is_predicate(prep_parent,prep_child, true);
 
                 if(is_pred){
                     add_PaEdge(prep_parent,prep_child);
-                }
+                }*/
                 prep_child.parent_id = parent_id;
+                prep_child.dependency = znode.dependency;
 
                 return true;
             }
@@ -257,7 +292,41 @@ bool InferenceGraph::handle_prep(ZparNode znode,ZparTree ztree) {
     }
 }
 
-bool InferenceGraph::handle_dec(ZparNode znode,ZparTree ztree) {
+bool InferenceGraph::handle_lc(ZparNode znode,ZparTree& ztree){
+    std::string cur_pos = znode.pos;
+    if(cur_pos!="LC"){
+        return false;
+    } else{
+
+        int cur_id = znode.id;
+
+        int parent_id = znode.parent_id;
+
+        std::vector<int>children_id = ztree.get_children(cur_id);
+
+        for(int i=0;i<children_id.size();i++){
+            ZparNode& lc_child = ztree.get_Node(children_id[i]);
+            if(lc_can_collapse(lc_child)){
+                ZparNode lc_parent = ztree.get_Node(parent_id);
+
+                add_DepEdge(lc_parent,lc_child,znode.dependency, true,znode.id);
+
+                addcollapse_node(lc_parent.id,znode.id,lc_child.id);
+
+               /* bool is_pred = is_predicate(lc_parent,lc_child, true);
+
+                if(is_pred){
+                    add_PaEdge(lc_parent,lc_child);
+                }*/
+                lc_child.parent_id = parent_id;
+
+                return true;
+            }
+        }
+    }
+}
+
+bool InferenceGraph::handle_dec(ZparNode znode,ZparTree& ztree) {
     //znode is the dec node
     std::string cur_pos = znode.pos;
 
@@ -266,7 +335,7 @@ bool InferenceGraph::handle_dec(ZparNode znode,ZparTree ztree) {
     } else{
         int cur_id = znode.id;
 
-        int parent_id = znode.id;  // cause cur is a child , parent exist
+        int parent_id = znode.parent_id;  // cause cur is a child , parent exist
 
         ZparNode dec_parent = ztree.get_Node(parent_id);
 
@@ -286,7 +355,7 @@ bool InferenceGraph::handle_dec(ZparNode znode,ZparTree ztree) {
 
             for(int i=0;i<children_id.size();i++){
 
-                ZparNode & dec_child = ztree.get_Node(children_id[i]);
+                ZparNode &dec_child = ztree.get_Node(children_id[i]);
 
                 if(dec_child.dependency=="DEC"){
                     add_DepEdge(added_id,dec_child.id,"NMOD", true,znode.id);//assume the added node is noun and child as a modifier
@@ -295,6 +364,7 @@ bool InferenceGraph::handle_dec(ZparNode znode,ZparTree ztree) {
                     Process_added_node(added_id,dec_parent.id,dec_child.id);
 
                     dec_child.parent_id = added_id;
+                    //dec_child.dependency = "NMOD";// suppose is a noun
 
                     return true;
                 }
@@ -311,6 +381,9 @@ bool InferenceGraph::handle_dec(ZparNode znode,ZparTree ztree) {
                     add_DepEdge(dec_parent,dec_child,znode.dependency, true,znode.id);
 
                     dec_child.parent_id = parent_id;
+                    dec_child.dependency = znode.dependency;
+
+                    return true;
                 }
             }
         }
@@ -322,13 +395,13 @@ void InferenceGraph::Process_added_node(int added_id,int parent_id,int child_id)
     //suppose added node is noun ,and also cause dec parent is verb,and for dec_child which has "DEC" relation is also verb
     //so I assume the added node is a argument
     add_PaEdge(parent_id,added_id);
-    add_PaEdge(child_id,added_id);
+     add_PaEdge(child_id,added_id);
 }
 
-bool  InferenceGraph::can_collapse(ZparNode prep_child) {
+bool  InferenceGraph::prep_can_collapse(ZparNode prep_child) {
     std::string pos = prep_child.pos;
     std::string dependency = prep_child.dependency;
-    if(pos=="NN"||pos=="NR"||pos=="VV"){
+    if(pos=="NN"||pos=="NR"||pos=="VV"||pos=="LC"){
         if(dependency=="POBJ"){
             return true;
         }
@@ -336,8 +409,22 @@ bool  InferenceGraph::can_collapse(ZparNode prep_child) {
     return false;
 }
 
+bool  InferenceGraph::lc_can_collapse(ZparNode lc_child) {
+    std::string pos = lc_child.pos;
+    std::string dependency = lc_child.dependency;
+    if(pos=="NN"||pos=="VV"){
+        if(dependency=="LC"){
+            return true;
+        }
+    }
+    return false;
+}
 
-bool InferenceGraph::judge_process_predicate(ZparNode znode, ZparTree ztree) {
+
+
+
+
+bool InferenceGraph::judge_process_predicate(ZparNode znode, ZparTree& ztree) {
 
     int parent_id = znode.parent_id;
 
@@ -369,6 +456,8 @@ bool InferenceGraph::judge_process_predicate(ZparNode znode, ZparTree ztree) {
         //handle preposition
         bool handle_prep_res = handle_prep(child_node,ztree);//判断child_node是不是介词,后边接有宾语可坍塌的情况
 
+        bool handle_lc_res = handle_lc(child_node,ztree);
+
         bool handle_dec_res =  handle_dec(child_node,ztree);//判断child_node 是不是dec情况.
 
         int true_znodeid = child_node.parent_id; //if doesn't collapse should be the same with znode.id
@@ -381,7 +470,7 @@ bool InferenceGraph::judge_process_predicate(ZparNode znode, ZparTree ztree) {
 
         }
 
-        if(!handle_prep_res&&same_node&&!handle_dec_res){
+        if(!handle_prep_res&&same_node&&!handle_dec_res&&!handle_lc_res){
             //添加dependency边
             add_DepEdge(znode,child_node);// dependency from parent to child
         }
@@ -405,7 +494,7 @@ bool InferenceGraph::judge_process_predicate(ZparNode znode, ZparTree ztree) {
             } else{
                 bool is_aff = is_affix(child_node,znode);
                 auto zc_tuple = std::make_tuple(znode,child_node);
-                if(is_aff&!handle_prep_res&&!handle_dec_res){
+                if(is_aff&!handle_prep_res&&!handle_dec_res&&!handle_lc_res){
                     //添加pre-aff边
                     //add_AffEdge(znode,child_node);
                     aff_edge.push_back(zc_tuple);

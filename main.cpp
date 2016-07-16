@@ -142,13 +142,15 @@ int main() {
 
     //for_each(zpars.begin(),zpars.end(),search_zpartree3);
 
-    InferenceGraph inferenceGraph;
 
 
 
-    inferenceGraph.Convert_from_Zpar(zpars[0]);
 
-    inferenceGraph.PrintEdge();
+        InferenceGraph inferenceGraph;
+
+        inferenceGraph.Convert_from_Zpar(zpars[4]);
+
+        inferenceGraph.PrintEdge();
 
 
 

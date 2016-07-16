@@ -16,7 +16,7 @@ struct Dep_Edge{
 
     bool has_vertex_info;
 
-    int collapse_nodeid;
+    std::vector<int> collapse_nodeids;
 
     Dep_Edge *next;
 
@@ -24,8 +24,8 @@ struct Dep_Edge{
 
         this->adjvex = target;
         this->Dep_relation = dependency;
-        this->collapse_nodeid = col_id;
-        this->has_vertex_info = false;
+        this->collapse_nodeids.push_back(col_id);
+        this->has_vertex_info = has_info;
         next = nullptr;
     }
 };
@@ -214,23 +214,29 @@ public:
 
     void add_DepEdge(int from_id,int to_id,std::string Dep_relation,bool has_more= false,int collapse_id=-1);
 
+    void addcollapse_node(int topid,int middleid,int bottomid);
+
     void add_PaEdge(ZparNode from,ZparNode to);
 
     void add_PaEdge(int from_id,int to_id);
 
     void add_AffEdge(ZparNode from,ZparNode to);
 
-    bool handle_prep(ZparNode znode,ZparTree ztree);
+    bool handle_prep(ZparNode znode,ZparTree& ztree);
 
-    bool handle_dec(ZparNode znode,ZparTree ztree);
+    bool handle_dec(ZparNode znode,ZparTree& ztree);
 
-    bool can_collapse(ZparNode prep_child);
+    bool handle_lc(ZparNode znode,ZparTree& ztree);
+
+    bool prep_can_collapse(ZparNode prep_child);
+
+    bool lc_can_collapse(ZparNode lc_child);
 
     void Process_added_node(int added_id,int parent_id,int child_id);
 
-    void ProcessDependencyNode(ZparNode znode,ZparTree ztree);
+    void ProcessDependencyNode(ZparNode znode,ZparTree& ztree);
 
-    bool judge_process_predicate(ZparNode znode, ZparTree ztree);
+    bool judge_process_predicate(ZparNode znode, ZparTree& ztree);
 
     void PrintEdge();
 
